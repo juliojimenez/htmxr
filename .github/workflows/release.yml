@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Release Tag'
+        required: true
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.11.0
+      
+      - name: Zig Build Exe 
+        run: |
+          zig build-exe src/main.zig -O ReleaseSmall -fstrip -fsingle-threaded -target aarch64-macos
+          mv main htmxr-${{ inputs.release_version }}-aarch64-macos
+          zig build-exe src/main.zig -O ReleaseSmall -fstrip -fsingle-threaded -target x86_64-linux
+          mv main htmxr-${{ inputs.release_version }}-x86_64-linux
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "htmxr-${{ inputs.release_version }}-aarch64-macos, htmxr-${{ inputs.release_version }}-x86_64-linux"
+          generateReleaseNotes: true
+          tag: ${{ inputs.release_version }}
